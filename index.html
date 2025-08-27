@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Quiz Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the quiz game */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .quiz-container {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .option-btn {
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .option-btn:hover {
+            background-color: #f0f4f8;
+            transform: translateY(-2px);
+        }
+        .option-btn.correct {
+            background-color: #d1fae5; /* Green-100 */
+            border-color: #10b981; /* Green-500 */
+        }
+        .option-btn.incorrect {
+            background-color: #fee2e2; /* Red-100 */
+            border-color: #ef4444; /* Red-500 */
+        }
+        .progress-bar-container {
+            background-color: #e5e7eb; /* Gray-200 */
+        }
+        .progress-bar {
+            background-color: #3b82f6; /* Blue-500 */
+            transition: width 0.5s ease-in-out;
+        }
+        #feedback {
+            min-height: 2rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="quiz-container w-full">
+        <!-- Quiz Header -->
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">Computer Science Fundamentals Quiz</h1>
+            <div id="progress-text" class="text-sm font-semibold text-gray-600">Question 1/101</div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar-container w-full h-2 rounded-full mb-6">
+            <div id="progress-bar" class="progress-bar h-2 rounded-full" style="width: 1%;"></div>
+        </div>
+
+        <!-- Quiz Body -->
+        <div id="quiz-body">
+            <h2 id="question" class="text-xl font-semibold text-gray-700 mb-6">Question text goes here...</h2>
+            <div id="options" class="grid grid-cols-1 gap-4">
+                <!-- Options will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <!-- Feedback and Actions -->
+        <div class="mt-8 flex justify-between items-center">
+            <div id="feedback" class="text-lg font-medium"></div>
+            <button id="next-btn" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 transition-transform transform hover:scale-105">Next</button>
+        </div>
+
+        <!-- Results Screen (Initially Hidden) -->
+        <div id="results-container" class="hidden text-center">
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">Quiz Completed!</h2>
+            <p class="text-xl text-gray-600 mb-2">Your Final Score:</p>
+            <p id="final-score" class="text-5xl font-extrabold text-blue-600 mb-6">0 / 0</p>
+            <p id="percentage" class="text-2xl font-semibold text-gray-700 mb-8">0%</p>
+            <button id="restart-btn" class="px-8 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 transition-transform transform hover:scale-105">Restart Quiz</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DATA ---
+            // Array of quiz questions, options, and correct answers.
+            const quizData = [
+                // Original JS Questions
+                { question: "What does 'DOM' stand for?", options: ["Document Object Model", "Data Object Model", "Document Oriented Middleware", "Desktop Object Management"], answer: "Document Object Model" },
+                { question: "Which keyword is used to declare a variable that cannot be reassigned?", options: ["let", "var", "const", "static"], answer: "const" },
+                { question: "What is `typeof null` in JavaScript?", options: ["'null'", "'undefined'", "'object'", "'string'"], answer: "'object'" },
+                { question: "Which method is used to add an element to the end of an array?", options: ["push()", "pop()", "shift()", "unshift()"], answer: "push()" },
+                { question: "What does `JSON.stringify()` do?", options: ["Parses a JSON string", "Converts a JavaScript object to a JSON string", "Validates a JSON object", "Creates a new JSON object"], answer: "Converts a JavaScript object to a JSON string" },
+                { question: "Which of the following is NOT a primitive data type in JavaScript?", options: ["String", "Number", "Boolean", "Object"], answer: "Object" },
+                { question: "How do you write a single-line comment in JavaScript?", options: ["// This is a comment", "<!-- This is a comment -->", "/* This is a comment */", "# This is a comment"], answer: "// This is a comment" },
+                { question: "Which event occurs when the user clicks on an HTML element?", options: ["onchange", "onmouseclick", "onmouseover", "onclick"], answer: "onclick" },
+                { question: "What will `console.log(3 + 2 + '7')` output?", options: ["'12'", "'57'", "'327'", "NaN"], answer: "'57'" },
+                { question: "How do you select an element with id 'demo'?", options: ["document.querySelector('#demo')", "document.getElement('demo')", "document.getElementByName('demo')", "document.querySelectorAll('.demo')"], answer: "document.querySelector('#demo')" },
+                
+                // General CS Questions
+                { question: "What does CPU stand for?", options: ["Central Processing Unit", "Computer Personal Unit", "Central Processor Unit", "Control Processing Unit"], answer: "Central Processing Unit" },
+                { question: "Which data structure operates on a 'Last-In, First-Out' (LIFO) basis?", options: ["Queue", "Stack", "Linked List", "Tree"], answer: "Stack" },
+                { question: "What is the time complexity of a successful binary search algorithm?", options: ["O(n)", "O(n^2)", "O(log n)", "O(1)"], answer: "O(log n)" },
+                { question: "What does HTML stand for?", options: ["HyperText Markup Language", "High-Level Text Machine Language", "Hyperlink and Text Markup Language", "Home Tool Markup Language"], answer: "HyperText Markup Language" },
+                { question: "In object-oriented programming, what is the term for a blueprint for creating objects?", options: ["Method", "Variable", "Class", "Instance"], answer: "Class" },
+                { question: "What is an algorithm?", options: ["A programming language", "A data structure", "A set of rules for solving a problem", "A computer's hardware"], answer: "A set of rules for solving a problem" },
+                { question: "Which of the following is a popular version control system?", options: ["Node.js", "Git", "Docker", "Apache"], answer: "Git" },
+                { question: "What does SQL stand for?", options: ["Structured Query Language", "Simple Query Language", "Standardized Query Logic", "System Query Language"], answer: "Structured Query Language" },
+                { question: "What is the main function of an Operating System (OS)?", options: ["To run applications", "To manage hardware and software resources", "To connect to the internet", "To create documents"], answer: "To manage hardware and software resources" },
+                { question: "Which protocol is used for secure communication over a computer network?", options: ["HTTP", "FTP", "SMTP", "HTTPS"], answer: "HTTPS" },
+
+                // New Questions Start Here
+                { question: "Which data structure uses a 'First-In, First-Out' (FIFO) principle?", options: ["Stack", "Queue", "Tree", "Graph"], answer: "Queue" },
+                { question: "What is the worst-case time complexity for insertion sort?", options: ["O(n log n)", "O(log n)", "O(n^2)", "O(n)"], answer: "O(n^2)" },
+                { question: "A node in a singly linked list contains a data element and a pointer to the...?", options: ["Previous node", "Next node", "Head node", "Tail node"], answer: "Next node" },
+                { question: "Which algorithm is used for finding the shortest path in a weighted graph?", options: ["Depth-First Search (DFS)", "Breadth-First Search (BFS)", "Dijkstra's Algorithm", "Merge Sort"], answer: "Dijkstra's Algorithm" },
+                { question: "What is a hash collision?", options: ["When two different keys map to the same hash value", "When a hash function returns an error", "When a key cannot be hashed", "When two same keys have different hash values"], answer: "When two different keys map to the same hash value" },
+                { question: "A binary tree can have at most how many children per node?", options: ["0", "1", "2", "Unlimited"], answer: "2" },
+                { question: "What does CSS stand for?", options: ["Cascading Style Sheets", "Creative Style Sheets", "Computer Style Sheets", "Colorful Style Sheets"], answer: "Cascading Style Sheets" },
+                { question: "Which HTML tag is used to define an internal style sheet?", options: ["<script>", "<css>", "<style>", "<link>"], answer: "<style>" },
+                { question: "What is the purpose of a 'div' tag in HTML?", options: ["To display an image", "To create a hyperlink", "To define a division or a section", "To format text as bold"], answer: "To define a division or a section" },
+                { question: "Which JavaScript framework was developed by Facebook?", options: ["Angular", "Vue.js", "React", "Ember.js"], answer: "React" },
+                { question: "What HTTP method is typically used to retrieve data from a server?", options: ["POST", "GET", "PUT", "DELETE"], answer: "GET" },
+                { question: "What does API stand for?", options: ["Application Programming Interface", "Advanced Programming Interface", "Application Protocol Interface", "Automated Programming Interface"], answer: "Application Programming Interface" },
+                { question: "Which SQL clause is used to filter results?", options: ["FILTER BY", "SELECT WHERE", "FROM", "WHERE"], answer: "WHERE" },
+                { question: "Which type of database is MongoDB?", options: ["Relational", "Graph", "Document (NoSQL)", "Key-Value"], answer: "Document (NoSQL)" },
+                { question: "What does 'PRIMARY KEY' in a database table ensure?", options: ["That the column can contain null values", "That all values in the column are unique and not null", "That the column is indexed for fast queries", "That the column can store large text"], answer: "That all values in the column are unique and not null" },
+                { question: "Which SQL command is used to add new data into a database?", options: ["ADD NEW", "INSERT INTO", "UPDATE", "CREATE"], answer: "INSERT INTO" },
+                { question: "What is a 'JOIN' clause used for in SQL?", options: ["To combine rows from two or more tables", "To delete data from a table", "To create a new table", "To filter records"], answer: "To combine rows from two or more tables" },
+                { question: "What is 'multitasking' in an OS?", options: ["Running multiple OS at once", "Allowing a user to perform multiple tasks at once", "Allowing multiple users to use the same computer", "Running multiple applications seemingly simultaneously"], answer: "Running multiple applications seemingly simultaneously" },
+                { question: "What is the kernel of an operating system?", options: ["The user interface", "The core component that manages system resources", "A set of utility programs", "The file system"], answer: "The core component that manages system resources" },
+                { question: "What is virtual memory?", options: ["A part of the CPU cache", "Memory on the hard disk used as an extension of RAM", "A type of very fast RAM", "A secure memory area"], answer: "Memory on the hard disk used as an extension of RAM" },
+                { question: "Which of the following is a mobile operating system?", options: ["Linux", "Windows 10", "macOS", "Android"], answer: "Android" },
+                { question: "What is a file extension?", options: ["The name of a file", "A suffix to the name of a file that indicates its type", "The size of a file", "The date a file was created"], answer: "A suffix to the name of a file that indicates its type" },
+                { question: "What does IP stand for?", options: ["Internet Protocol", "Internal Protocol", "Internet Provider", "Information Protocol"], answer: "Internet Protocol" },
+                { question: "What is a router's primary function?", options: ["To connect a computer to the internet", "To forward data packets between computer networks", "To provide a firewall", "To store web pages"], answer: "To forward data packets between computer networks" },
+                { question: "What does DNS stand for?", options: ["Domain Name System", "Data Naming Service", "Dynamic Network System", "Domain Naming Standard"], answer: "Domain Name System" },
+                { question: "Which layer of the OSI model is responsible for routing?", options: ["Physical Layer", "Data Link Layer", "Network Layer", "Transport Layer"], answer: "Network Layer" },
+                { question: "What is a MAC address?", options: ["A software address", "A unique identifier assigned to a network interface controller (NIC)", "An IP address", "A type of encryption"], answer: "A unique identifier assigned to a network interface controller (NIC)" },
+                { question: "What does 'LAN' stand for?", options: ["Large Area Network", "Local Access Network", "Local Area Network", "Long Area Network"], answer: "Local Area Network" },
+                { question: "What is the 'Agile' methodology?", options: ["A linear, sequential approach to software development", "An iterative approach focused on collaboration and flexibility", "A methodology focused only on testing", "A type of programming language"], answer: "An iterative approach focused on collaboration and flexibility" },
+                { question: "What is 'refactoring'?", options: ["Adding new features to the code", "Restructuring existing computer code without changing its external behavior", "Debugging the code", "Writing documentation"], answer: "Restructuring existing computer code without changing its external behavior" },
+                { question: "What is the purpose of unit testing?", options: ["To test the entire application as a whole", "To test individual components or functions in isolation", "To have users test the application", "To test the user interface"], answer: "To test individual components or functions in isolation" },
+                { question: "What does 'DRY' stand for in software development?", options: ["Don't Repeat Yourself", "Do Repeat Yourself", "Don't Rush Your-code", "Define, Review, Yield"], answer: "Don't Repeat Yourself" },
+                { question: "What is recursion?", options: ["A loop that never ends", "A function that calls itself", "A type of data structure", "A way to handle errors"], answer: "A function that calls itself" },
+                { question: "Which of these is a compiled language?", options: ["JavaScript", "Python", "Ruby", "C++"], answer: "C++" },
+                { question: "What is 'polymorphism' in OOP?", options: ["The ability of an object to take on many forms", "The process of hiding implementation details", "The ability to create a new class from an existing class", "A type of variable"], answer: "The ability of an object to take on many forms" },
+                { question: "What is the binary representation of the decimal number 10?", options: ["1010", "1100", "1001", "0110"], answer: "1010" },
+                { question: "What does 'IDE' stand for?", options: ["Integrated Development Environment", "Internal Development Engine", "Integrated Design Environment", "Intelligent Development Environment"], answer: "Integrated Development Environment" },
+                { question: "What is 'syntax sugar'?", options: ["A critical error in code", "Syntax within a programming language that is designed to make things easier to read or to express", "A performance optimization technique", "A comment in the code"], answer: "Syntax within a programming language that is designed to make things easier to read or to express" },
+                { question: "What is the main difference between '==' and '===' in JavaScript?", options: ["They are the same", "'===' checks for type and value equality, while '==' only checks for value", "'==' is faster than '==='", "'===' is for numbers, '==' is for strings"], answer: "'===' checks for type and value equality, while '==' only checks for value" },
+                { question: "What is phishing?", options: ["A type of computer virus", "An attempt to obtain sensitive information by disguising as a trustworthy entity", "A hardware malfunction", "A method for cooling CPUs"], answer: "An attempt to obtain sensitive information by disguising as a trustworthy entity" },
+                { question: "What does a firewall do?", options: ["Protects a network by monitoring and controlling incoming and outgoing network traffic", "Encrypts all your data", "Increases internet speed", "Scans for viruses on your computer"], answer: "Protects a network by monitoring and controlling incoming and outgoing network traffic" },
+                { question: "What is malware?", options: ["A type of computer hardware", "Software designed to disrupt, damage, or gain unauthorized access to a computer system", "A secure operating system", "A network protocol"], answer: "Software designed to disrupt, damage, or gain unauthorized access to a computer system" },
+                { question: "What is two-factor authentication (2FA)?", options: ["Using two passwords", "A security process where users provide two different authentication factors to verify themselves", "A type of antivirus software", "A firewall setting"], answer: "A security process where users provide two different authentication factors to verify themselves" },
+                { question: "What is 'Cloud Computing'?", options: ["Storing data on your personal computer", "Delivering computing services over the Internet", "A type of weather forecasting technology", "A new type of laptop"], answer: "Delivering computing services over the Internet" },
+                { question: "Which of the following is a major cloud provider?", options: ["Microsoft Office", "Adobe Photoshop", "Amazon Web Services (AWS)", "Dropbox"], answer: "Amazon Web Services (AWS)" },
+                { question: "What does 'SaaS' stand for?", options: ["Software as a Service", "System as a Service", "Security as a Service", "Storage as a Service"], answer: "Software as a Service" },
+                { question: "What is 'open source' software?", options: ["Software that is free to use", "Software with source code that anyone can inspect, modify, and enhance", "Software that is still in beta testing", "Software that runs on Linux only"], answer: "Software with source code that anyone can inspect, modify, and enhance" },
+                { question: "In computing, what is a 'bit'?", options: ["A small piece of data", "The smallest unit of data in a computer", "A type of computer chip", "A programming error"], answer: "The smallest unit of data in a computer" },
+                { question: "How many bits are in a byte?", options: ["4", "8", "16", "32"], answer: "8" },
+                { question: "Who is considered the 'father of the computer'?", options: ["Alan Turing", "Charles Babbage", "Bill Gates", "Steve Jobs"], answer: "Charles Babbage" },
+                { question: "What was the first commercially successful video game?", options: ["Tetris", "Pac-Man", "Space Invaders", "Pong"], answer: "Pong" },
+                { question: "What does 'GUI' stand for?", options: ["Graphical User Interface", "General User Interaction", "Gaming User Interface", "Global User Interface"], answer: "Graphical User Interface" },
+                { question: "What is Moore's Law?", options: ["A law about data encryption", "The observation that the number of transistors on a microchip doubles about every two years", "A principle of network design", "A rule for writing efficient code"], answer: "The observation that the number of transistors on a microchip doubles about every two years" },
+                { question: "What does 'URL' stand for?", options: ["Uniform Resource Locator", "Universal Resource Link", "Uniform Record Locator", "Universal Record Link"], answer: "Uniform Resource Locator" },
+                { question: "What is the purpose of the 'alt' attribute in an HTML `<img>` tag?", options: ["To provide alternative text if the image cannot be displayed", "To set the alignment of the image", "To define the image's source URL", "To style the image with CSS"], answer: "To provide alternative text if the image cannot be displayed" },
+                { question: "Which language is primarily used for styling web pages?", options: ["HTML", "JavaScript", "Python", "CSS"], answer: "CSS" },
+                { question: "What is a 'bug' in the context of software?", options: ["A feature that is not yet implemented", "An error, flaw or fault in a computer program or system", "A small insect", "A security feature"], answer: "An error, flaw or fault in a computer program or system" },
+                { question: "What does 'RAM' stand for?", options: ["Read-Only Memory", "Random-Access Memory", "Rapid-Access Memory", "Run-And-Manage Memory"], answer: "Random-Access Memory" },
+                { question: "Which of these is NOT a web browser?", options: ["Chrome", "Firefox", "Safari", "Photoshop"], answer: "Photoshop" },
+                { question: "What is an 'array'?", options: ["A collection of elements identified by index or key", "A single variable", "A function that returns multiple values", "A type of computer monitor"], answer: "A collection of elements identified by index or key" },
+                { question: "What does 'HTTP' stand for?", options: ["HyperText Transfer Protocol", "High-Level Text Transfer Protocol", "HyperText Transmission Protocol", "Hyperlink Transfer and Text Protocol"], answer: "HyperText Transfer Protocol" },
+                { question: "What is 'machine learning'?", options: ["The process of a computer learning without being explicitly programmed", "A type of computer hardware", "A new programming language", "A method for data storage"], answer: "The process of a computer learning without being explicitly programmed" },
+                { question: "What is the file system used by Windows?", options: ["ext4", "APFS", "HFS+", "NTFS"], answer: "NTFS" },
+                { question: "What is a 'compiler'?", options: ["A program that translates code from one programming language to another", "A program that executes code line by line", "A text editor for writing code", "A hardware component"], answer: "A program that translates code from one programming language to another" },
+                { question: "What does 'BIOS' stand for?", options: ["Basic Input/Output System", "Binary Input/Output Service", "Basic Integrated Operating System", "Binary Integrated Open Source"], answer: "Basic Input/Output System" },
+                { question: "Which company developed the Java programming language?", options: ["Microsoft", "Apple", "Sun Microsystems", "IBM"], answer: "Sun Microsystems" },
+                { question: "What is a 'pixel'?", options: ["A unit of measurement for computer memory", "The smallest addressable element in a raster image", "A type of computer virus", "A network device"], answer: "The smallest addressable element in a raster image" },
+                { question: "What does 'FTP' stand for?", options: ["File Transfer Protocol", "Fast Transfer Protocol", "File Transmission Process", "Folder Transfer Protocol"], answer: "File Transfer Protocol" },
+                { question: "What is 'Big O notation' used for?", options: ["To describe the performance or complexity of an algorithm", "To write mathematical formulas", "To define variable names", "To encrypt data"], answer: "To describe the performance or complexity of an algorithm" },
+                { question: "What is the purpose of a 'constructor' in a class?", options: ["To destroy an object", "A special method for creating and initializing an object instance of that class", "To perform a calculation", "To display a message"], answer: "A special method for creating and initializing an object instance of that class" },
+                { question: "Which of the following is a dynamically-typed language?", options: ["C++", "Java", "C#", "Python"], answer: "Python" },
+                { question: "What is 'inheritance' in OOP?", options: ["A mechanism where a new class inherits properties and behavior from an existing class", "A way to secure data", "A type of loop", "A method for sorting data"], answer: "A mechanism where a new class inherits properties and behavior from an existing class" },
+                { question: "What does 'IoT' stand for?", options: ["Internet of Things", "Internet of Technology", "Internal Object Tracker", "Input on Time"], answer: "Internet of Things" },
+                { question: "What is a 'cookie' in web terms?", options: ["A small piece of data sent from a website and stored on the user's computer", "A type of pop-up ad", "A computer virus", "A delicious baked good"], answer: "A small piece of data sent from a website and stored on the user's computer" },
+                { question: "What is the 'viewport' meta tag used for in HTML?", options: ["To set the background color of the page", "To control the page's dimensions and scaling for different devices", "To load external scripts", "To define the character set"], answer: "To control the page's dimensions and scaling for different devices" },
+                { question: "Which of these is a CSS preprocessor?", options: ["TypeScript", "jQuery", "Sass", "Babel"], answer: "Sass" },
+                { question: "What is 'responsive web design'?", options: ["A design that responds quickly to user input", "A web design approach that makes web pages render well on a variety of devices and window or screen sizes", "A design with many animations", "A design that uses only one color"], answer: "A web design approach that makes web pages render well on a variety of devices and window or screen sizes" },
+                { question: "What is a 'callback function' in JavaScript?", options: ["A function that is passed into another function as an argument, to be executed later", "A function that calls the police", "A function that is called automatically when a page loads", "A function that returns a boolean value"], answer: "A function that is passed into another function as an argument, to be executed later" },
+                { question: "What is 'git merge' used for?", options: ["To delete a branch", "To join two or more development histories together", "To create a new repository", "To view the commit history"], answer: "To join two or more development histories together" },
+                { question: "What is a '404 error'?", options: ["A server error indicating the request could not be fulfilled", "An HTTP status code meaning the server can't find the requested resource", "A code indicating a successful request", "A client-side syntax error"], answer: "An HTTP status code meaning the server can't find the requested resource" }
+            ];
+
+            // --- STATE VARIABLES ---
+            let currentQuestionIndex = 0;
+            let score = 0;
+            let answerSelected = false;
+
+            // --- DOM ELEMENTS ---
+            const questionEl = document.getElementById('question');
+            const optionsEl = document.getElementById('options');
+            const feedbackEl = document.getElementById('feedback');
+            const nextBtn = document.getElementById('next-btn');
+            const quizBodyEl = document.getElementById('quiz-body');
+            const resultsContainerEl = document.getElementById('results-container');
+            const finalScoreEl = document.getElementById('final-score');
+            const percentageEl = document.getElementById('percentage');
+            const restartBtn = document.getElementById('restart-btn');
+            const progressTextEl = document.getElementById('progress-text');
+            const progressBarEl = document.getElementById('progress-bar');
+
+            // --- FUNCTIONS ---
+
+            /**
+             * Shuffles the questions array randomly.
+             */
+            function shuffleQuestions() {
+                for (let i = quizData.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [quizData[i], quizData[j]] = [quizData[j], quizData[i]];
+                }
+            }
+
+            /**
+             * Loads and displays the current question and its options.
+             */
+            function loadQuestion() {
+                // Reset state from previous question
+                answerSelected = false;
+                feedbackEl.textContent = '';
+                optionsEl.innerHTML = '';
+
+                // Get the current question object
+                const currentQuestion = quizData[currentQuestionIndex];
+                questionEl.textContent = currentQuestion.question;
+
+                // Update progress
+                updateProgress();
+
+                // Create and append option buttons
+                currentQuestion.options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.textContent = option;
+                    button.classList.add('option-btn', 'w-full', 'p-4', 'text-left', 'border', 'border-gray-300', 'rounded-lg', 'focus:outline-none', 'focus:ring-2', 'focus:ring-blue-400');
+                    button.addEventListener('click', () => selectAnswer(button, option));
+                    optionsEl.appendChild(button);
+                });
+            }
+
+            /**
+             * Handles the user's answer selection.
+             * @param {HTMLElement} btn - The button element that was clicked.
+             * @param {string} selectedOption - The text content of the selected option.
+             */
+            function selectAnswer(btn, selectedOption) {
+                if (answerSelected) return; // Prevent changing answer
+                answerSelected = true;
+
+                const correctAnswer = quizData[currentQuestionIndex].answer;
+
+                // Provide visual feedback
+                if (selectedOption === correctAnswer) {
+                    score++;
+                    btn.classList.add('correct');
+                    feedbackEl.textContent = "Correct!";
+                    feedbackEl.classList.add('text-green-600');
+                    feedbackEl.classList.remove('text-red-600');
+                } else {
+                    btn.classList.add('incorrect');
+                    feedbackEl.textContent = "Incorrect!";
+                    feedbackEl.classList.add('text-red-600');
+                    feedbackEl.classList.remove('text-green-600');
+
+                    // Highlight the correct answer
+                    Array.from(optionsEl.children).forEach(button => {
+                        if (button.textContent === correctAnswer) {
+                            button.classList.add('correct');
+                        }
+                    });
+                }
+            }
+
+            /**
+             * Updates the progress text and bar.
+             */
+            function updateProgress() {
+                progressTextEl.textContent = `Question ${currentQuestionIndex + 1} of ${quizData.length}`;
+                const progressPercentage = ((currentQuestionIndex + 1) / quizData.length) * 100;
+                progressBarEl.style.width = `${progressPercentage}%`;
+            }
+
+            /**
+             * Moves to the next question or shows the results if the quiz is over.
+             */
+            function nextQuestion() {
+                if (!answerSelected && currentQuestionIndex < quizData.length) {
+                    // You can add a message here to prompt user to select an answer.
+                    // For now, we just prevent moving forward.
+                    return;
+                }
+
+                currentQuestionIndex++;
+                if (currentQuestionIndex < quizData.length) {
+                    loadQuestion();
+                } else {
+                    showResults();
+                }
+            }
+
+            /**
+             * Displays the final results of the quiz.
+             */
+            function showResults() {
+                quizBodyEl.classList.add('hidden');
+                document.querySelector('.quiz-container > .flex.justify-between').classList.add('hidden');
+                document.querySelector('.progress-bar-container').classList.add('hidden');
+                document.querySelector('.mt-8.flex.justify-between').classList.add('hidden');
+                resultsContainerEl.classList.remove('hidden');
+
+                finalScoreEl.textContent = `${score} / ${quizData.length}`;
+                const percent = Math.round((score / quizData.length) * 100);
+                percentageEl.textContent = `You scored ${percent}%`;
+            }
+
+            /**
+             * Resets the quiz to its initial state.
+             */
+            function restartQuiz() {
+                currentQuestionIndex = 0;
+                score = 0;
+                answerSelected = false;
+
+                resultsContainerEl.classList.add('hidden');
+                quizBodyEl.classList.remove('hidden');
+                document.querySelector('.quiz-container > .flex.justify-between').classList.remove('hidden');
+                document.querySelector('.progress-bar-container').classList.remove('hidden');
+                document.querySelector('.mt-8.flex.justify-between').classList.remove('hidden');
+                
+                shuffleQuestions();
+                loadQuestion();
+            }
+
+            // --- EVENT LISTENERS ---
+            nextBtn.addEventListener('click', nextQuestion);
+            restartBtn.addEventListener('click', restartQuiz);
+
+            // --- INITIALIZATION ---
+            shuffleQuestions(); // Randomize question order
+            loadQuestion(); // Load the first question on page load
+        });
+    </script>
+
+</body>
+</html>
